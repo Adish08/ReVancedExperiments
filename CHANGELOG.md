@@ -1,3 +1,24 @@
+# 1.0.0 (2025-01-08)
+
+
+### Bug Fixes
+
+* **kustom:** Find correct method ([8af3f33](https://github.com/Adish08/ReVancedExperiments/commit/8af3f3384de35be3ea0c5f7ab9700a2ed2fe5c2c))
+* Remove api declaration ([f16bbb7](https://github.com/Adish08/ReVancedExperiments/commit/f16bbb7321ab29e77ee9258d826e875405f0e225))
+* **telegram:** Find correct method ([197f9ee](https://github.com/Adish08/ReVancedExperiments/commit/197f9ee4e046135a2b298861485d57b11a405099))
+* **telegram:** Use correct patch name and description ([895eabc](https://github.com/Adish08/ReVancedExperiments/commit/895eabcec818b45baa63ffc8ad02a6ae53c05e53))
+
+
+### Features
+
+* Add patches, utils ([8452993](https://github.com/Adish08/ReVancedExperiments/commit/84529931c0964ddba9986f66043db62393444ac2))
+* **Telegram:** Add `Bypass Integrity` patch ([037ec88](https://github.com/Adish08/ReVancedExperiments/commit/037ec88741df3a948c062684ace7632db7eb18b5))
+* **Telegram:** Add `Download Speed Boost` patch ([00c5cc3](https://github.com/Adish08/ReVancedExperiments/commit/00c5cc360d298729250ab3679739cd54e3a56d1d))
+* **Telegram:** Add initial `Disable Auto Updates` patch ([c698265](https://github.com/Adish08/ReVancedExperiments/commit/c698265dddf619a21d4167a474afc522a6a58027))
+* **telegram:** Add Pro patch ([aa06215](https://github.com/Adish08/ReVancedExperiments/commit/aa0621508c9aabf492612941d292a4a6601508ca))
+* **Telegram:** Update `Bypass Integrity` patch ([a4bc92d](https://github.com/Adish08/ReVancedExperiments/commit/a4bc92d0c12179302c9cf7e6d4646f051a4b778f))
+* **Telegram:** Update `Disable Auto Updates` patch ([58468a7](https://github.com/Adish08/ReVancedExperiments/commit/58468a7de2e55861501289c968eace16fb540fdd))
+
 ## [1.6.1](https://github.com/Aunali321/ReVancedExperiments/compare/v1.6.0...v1.6.1) (2025-01-07)
 
 
