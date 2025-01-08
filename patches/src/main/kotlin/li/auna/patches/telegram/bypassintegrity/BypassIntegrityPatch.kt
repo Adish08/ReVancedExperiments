@@ -1,91 +1,98 @@
 package li.auna.patches.telegram.bypassintegrity
 
-import app.revanced.patcher.Fingerprint
+import app.revanced.patcher.data.BytecodeContext
 import app.revanced.patcher.extensions.InstructionExtensions.addInstructions
 import app.revanced.patcher.extensions.InstructionExtensions.getInstruction
 import app.revanced.patcher.extensions.InstructionExtensions.replaceInstruction
+import app.revanced.patcher.patch.BytecodePatch
+import app.revanced.patcher.patch.annotation.CompatiblePackage
+import app.revanced.patcher.patch.annotation.Patch
 import app.revanced.patcher.fingerprint.method.impl.MethodFingerprint
-import app.revanced.patcher.patch.PatchResult
-import app.revanced.patcher.patch.PatchResultSuccess
-import app.revanced.patcher.patch.bytecodePatch
+import app.revanced.patcher.fingerprint.method.annotation.FingerprintAnnotation
+import app.revanced.patcher.fingerprint.method.annotation.StringsAnnotation
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
-import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 
-@Suppress("unused")
-val bypassIntegrityPatch = bytecodePatch(
+@Patch(
     name = "Bypass Integrity",
-    description = "Bypass integrity check to allow login",
+    description = "Bypasses integrity check to allow login",
+    compatiblePackages = [
+        CompatiblePackage("org.telegram.messenger"),
+        CompatiblePackage("org.telegram.messenger.web"),
+        CompatiblePackage("uz.unnarsx.cherrygram")
+    ]
+)
+class BypassIntegrityPatch : BytecodePatch(
+    setOf(IntegrityCheckFingerprint, SignatureFingerprint)
 ) {
-    compatibleWith(
-        "org.telegram.messenger",
-        "org.telegram.messenger.web",
-        "uz.unnarsx.cherrygram"
-    )
-
-    // Enhanced fingerprint for better matching
-    val enhancedIntegrityFingerprint = fingerprint {
-        accessFlags(AccessFlags.PRIVATE or AccessFlags.SYNTHETIC)
-        returnType("V")
-        strings("basicIntegrity", "ctsProfileMatch")
-        // Add additional matching criteria for CherryGram
-        opcodes(
-            Opcode.CONST_STRING,
-            Opcode.INVOKE_VIRTUAL
+    override fun execute(context: BytecodeContext): PatchResult {
+        val integrityResult = IntegrityCheckFingerprint.result ?: throw PatchException(
+            "Could not find integrity check method"
         )
-    }
-
-    val enhancedSignatureFingerprint = fingerprint {
-        className("org/telegram/messenger/AndroidUtilities")
-        methodName("getCertificateSHA256Fingerprint")
-        returnType("Ljava/lang/String;")
-        accessFlags(AccessFlags.PUBLIC or AccessFlags.STATIC)
-    }
-
-    execute {
-        fun patchIntegrityCheck(fingerprint: MethodFingerprint) {
-            fingerprint.result?.let { result ->
-                result.method.apply {
-                    val stringMatches = result.scanResult.stringsScanResult!!.matches
-                    
-                    // Find all integrity check conditions
-                    stringMatches.forEach { match ->
-                        var index = match.index
-                        // Look for the conditional check instruction
-                        while (index < implementation!!.instructions.size) {
-                            val instruction = getInstruction(index)
-                            if (instruction.opcode == Opcode.IF_EQZ || instruction.opcode == Opcode.IF_NEZ) {
-                                val register = (instruction as OneRegisterInstruction).registerA
-                                // Force the check to pass
-                                replaceInstruction(index, "const/4 v$register, 0x1")
-                                break
-                            }
-                            index++
-                        }
-                    }
+        
+        integrityResult.mutableMethod.apply {
+            val stringMatches = IntegrityCheckFingerprint.strings
+            stringMatches.forEachIndexed { _, string ->
+                var currentIndex = implementation!!.instructions.indexOfFirst { 
+                    it is OneRegisterInstruction && it.opcode == Opcode.CONST_STRING 
+                        && (it as OneRegisterInstruction).registerA == string
                 }
-            } ?: throw PatchException("Failed to find integrity check method")
+                
+                if (currentIndex != -1) {
+                    currentIndex += 2 // Move to the check instruction
+                    val checkInstruction = getInstruction<OneRegisterInstruction>(currentIndex)
+                    replaceInstruction(
+                        currentIndex,
+                        "const/4 v${checkInstruction.registerA}, 0x1"
+                    )
+                }
+            }
         }
 
         // Patch signature check
-        enhancedSignatureFingerprint.result?.let { result ->
-            result.method.apply {
-                addInstructions(
-                    0,
-                    """
-                    const-string v0, "49C1522548EBACD46CE322B6FD47F6092BB745D0F88082145CAF35E14DCC38E1"
-                    return-object v0
-                    """
-                )
-            }
-        } ?: throw PatchException("Failed to find signature method")
+        val signatureResult = SignatureFingerprint.result ?: throw PatchException(
+            "Could not find signature method"
+        )
+        
+        signatureResult.mutableMethod.apply {
+            addInstructions(
+                0,
+                """
+                const-string v0, "49C1522548EBACD46CE322B6FD47F6092BB745D0F88082145CAF35E14DCC38E1"
+                return-object v0
+                """
+            )
+        }
 
-        // Attempt to patch integrity check
-        patchIntegrityCheck(enhancedIntegrityFingerprint)
-
-        PatchResultSuccess()
+        return PatchResult.Success()
     }
 }
+
+@FingerprintAnnotation(
+    strings = [
+        StringsAnnotation(["basicIntegrity", "ctsProfileMatch"])
+    ],
+    accessFlags = AccessFlags.PRIVATE or AccessFlags.SYNTHETIC
+)
+object IntegrityCheckFingerprint : MethodFingerprint(
+    returnType = "V",
+    parameters = listOf(),
+    customFingerprint = { methodDef, _ ->
+        methodDef.implementation?.instructions?.any { 
+            it.opcode == Opcode.CONST_STRING 
+        } == true
+    }
+)
+
+@FingerprintAnnotation
+object SignatureFingerprint : MethodFingerprint(
+    returnType = "Ljava/lang/String;",
+    strings = listOf(),
+    customFingerprint = { methodDef, classDef ->
+        methodDef.name == "getCertificateSHA256Fingerprint" 
+            && classDef.type.endsWith("Lorg/telegram/messenger/AndroidUtilities;")
+    }
+)
 
 class PatchException(message: String) : Exception(message)
