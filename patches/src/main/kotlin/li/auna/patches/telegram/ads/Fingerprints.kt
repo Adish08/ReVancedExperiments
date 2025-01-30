@@ -5,6 +5,8 @@ import app.revanced.patcher.fingerprint
 internal val hideSponsoredMessagesFingerprint = fingerprint {
     returns("V")
     custom { methodDef, classDef ->
-        methodDef.name == "addSponsoredMessages" && classDef.type.endsWith("Lorg/telegram/ui/ChatActivity;")
+        methodDef.name == "addSponsoredMessages" && 
+        (classDef.type.endsWith("Lorg/telegram/ui/ChatActivity;") || 
+         classDef.type.endsWith("Luz/unnarsx/cherrygram/ui/ChatActivity;")) 
     }
 }
