@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/Adish08/ReVancedExperiments/compare/v1.0.0...v1.1.0) (2025-01-30)
+
+
+### Features
+
+* add cherrygram path ([517c302](https://github.com/Adish08/ReVancedExperiments/commit/517c30261c18c2447039fb71543529fa04526fb6))
+
 # 1.0.0 (2025-01-08)
 
 
