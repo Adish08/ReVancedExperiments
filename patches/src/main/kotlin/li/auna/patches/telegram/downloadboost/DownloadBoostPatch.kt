@@ -18,95 +18,70 @@ val downloadBoostPatch = bytecodePatch(
         "uz.unnarsx.cherrygram"
     )
 
-    execute {
-        val className = updateParamsFingerprint.originalClassDef.type
-        val originalMethod = updateParamsFingerprint.method
-        val returnType = originalMethod.returnType
-
-        updateParamsFingerprint.classDef.methods.removeIf { it.name == originalMethod.name }
-
-        updateParamsFingerprint.classDef.methods.add(
-            ImmutableMethod(
-                className,
-                originalMethod.name,
-                emptyList(),
-                returnType,
-                AccessFlags.PRIVATE.value,
-                null,
-                null,
-                MutableMethodImplementation(5)
-            ).toMutable().apply {
-                addInstructions(
-                    """
-                        .line 266
-                        iget v0, p0, Lorg/telegram/messenger/FileLoadOperation;->preloadPrefixSize:I
+execute {
+    val classDef = updateParamsFingerprint.classDef
+    val originalMethod = updateParamsFingerprint.method
+    
+    val accessFlags = originalMethod.accessFlags
+    
+    val classPackage = classDef.type.substring(1).replace("/", ".")
+    
+    classDef.methods.removeIf { it.name == originalMethod.name }
+    
+    classDef.methods.add(
+        ImmutableMethod(
+            classDef.type,
+            originalMethod.name,
+            originalMethod.parameters,
+            originalMethod.returnType,
+            accessFlags,
+            null,
+            null,
+            MutableMethodImplementation(originalMethod.implementation.instructions.size)
+        ).toMutable().apply {
+            addInstructions(
+                """
+                    iget v0, p0, $classPackage.FileLoadOperation->preloadPrefixSize:I
+                    if-gtz v0, :cond_e
                     
-                        if-gtz v0, :cond_e
+                    iget v0, p0, $classPackage.FileLoadOperation->currentAccount:I
+                    invoke-static {v0}, $classPackage.MessagesController->getInstance(I)L$classPackage.MessagesController;
+                    move-result-object v0
                     
-                        iget v0, p0, Lorg/telegram/messenger/FileLoadOperation;->currentAccount:I
+                    iget-boolean v0, v0, $classPackage.MessagesController->getfileExperimentalParams:Z
+                    if-eqz v0, :cond_1d
                     
-                        invoke-static {v0}, Lorg/telegram/messenger/MessagesController;->getInstance(I)Lorg/telegram/messenger/MessagesController;
+                    :cond_e
+                    iget-boolean v0, p0, $classPackage.FileLoadOperation->forceSmallChunk:Z
+                    if-nez v0, :cond_1d
                     
-                        move-result-object v0
+                    const/high16 v0, 0x80000
+                    iput v0, p0, $classPackage.FileLoadOperation->downloadChunkSizeBig:I
                     
-                        iget-boolean v0, v0, Lorg/telegram/messenger/MessagesController;->getfileExperimentalParams:Z
+                    const/16 v0, 0x8
+                    iput v0, p0, $classPackage.FileLoadOperation->maxDownloadRequests:I
+                    iput v0, p0, $classPackage.FileLoadOperation->maxDownloadRequestsBig:I
+                    goto :goto_26
                     
-                        if-eqz v0, :cond_1d
+                    :cond_1d
+                    const/high16 v0, 0x80000
+                    iput v0, p0, $classPackage.FileLoadOperation->downloadChunkSizeBig:I
                     
-                        :cond_e
-                        iget-boolean v0, p0, Lorg/telegram/messenger/FileLoadOperation;->forceSmallChunk:Z
+                    const/16 v0, 0x8
+                    iput v0, p0, $classPackage.FileLoadOperation->maxDownloadRequests:I
+                    iput v0, p0, $classPackage.FileLoadOperation->maxDownloadRequestsBig:I
                     
-                        if-nez v0, :cond_1d
+                    :goto_26
+                    const-wide/32 v0, 0x7d000000
+                    iget v2, p0, $classPackage.FileLoadOperation->downloadChunkSizeBig:I
+                    int-to-long v2, v2
+                    div-long/2addr v0, v2
+                    long-to-int v1, v0
+                    iput v1, p0, $classPackage.FileLoadOperation->maxCdnParts:I
                     
-                        const/high16 v0, 0x80000
-                    
-                        .line 267
-                        iput v0, p0, Lorg/telegram/messenger/FileLoadOperation;->downloadChunkSizeBig:I
-                    
-                        const/16 v0, 0x8
-                    
-                        .line 268
-                        iput v0, p0, Lorg/telegram/messenger/FileLoadOperation;->maxDownloadRequests:I
-                    
-                        .line 269
-                        iput v0, p0, Lorg/telegram/messenger/FileLoadOperation;->maxDownloadRequestsBig:I
-                    
-                        goto :goto_26
-                    
-                        :cond_1d
-                        const/high16 v0, 0x80000
-                    
-                        .line 271
-                        iput v0, p0, Lorg/telegram/messenger/FileLoadOperation;->downloadChunkSizeBig:I
-                    
-                        const/16 v0, 0x8
-                    
-                        .line 272
-                        iput v0, p0, Lorg/telegram/messenger/FileLoadOperation;->maxDownloadRequests:I
-                    
-                        .line 273
-                        iput v0, p0, Lorg/telegram/messenger/FileLoadOperation;->maxDownloadRequestsBig:I
-                        
-                        goto :goto_26
-                    
-                        :goto_26
-                        const-wide/32 v0, 0x7d000000
-                    
-                        .line 275
-                        iget v2, p0, Lorg/telegram/messenger/FileLoadOperation;->downloadChunkSizeBig:I
-                    
-                        int-to-long v2, v2
-                    
-                        div-long/2addr v0, v2
-                    
-                        long-to-int v1, v0
-                    
-                        iput v1, p0, Lorg/telegram/messenger/FileLoadOperation;->maxCdnParts:I
-                    
-                        return-void
-                    """
-                )
-            }
-        )
-    }
+                    return-void
+                """
+            )
+        }
+    )
 }
